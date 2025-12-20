@@ -25,6 +25,11 @@ spring:
         order_inserts: true
         order_updates: true
     open-in-view: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Europe/Moscow
 
 management:
   endpoints:

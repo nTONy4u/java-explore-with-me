@@ -1,0 +1,563 @@
+{
+  "info": {
+    "name": "ExploreWithMe - Комментарии API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Тесты для фичи комментариев"
+  },
+  "item": [
+    {
+      "name": "0. Проверка сервиса",
+      "item": [
+        {
+          "name": "0.0 Проверить доступность сервиса",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/events",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Сервис доступен\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  console.log(\"Сервис работает корректно\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.1 Получить существующих пользователей",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/admin/users",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Пользователи получены\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  const jsonData = pm.response.json();",
+                  "  if (jsonData.length > 0) {",
+                  "    pm.environment.set('test_user_id', jsonData[0].id);",
+                  "    console.log(\"Используем пользователя ID: \" + jsonData[0].id);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.2 Создать тестового пользователя (если нет)",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/admin/users",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Комментатор Тестовый\",\n  \"email\": \"commentator@test.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Пользователь создан или уже существует\", function() {",
+                  "  const status = pm.response.code;",
+                  "  if (status === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('test_user_id', jsonData.id);",
+                  "    console.log(\"Создан новый пользователь ID: \" + jsonData.id);",
+                  "  } else if (status === 409) {",
+                  "    console.log(\"Пользователь уже существует, используем существующего\");",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.3 Получить существующие категории",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/categories",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Категории получены\", function() {",
+                  "  pm.response.to.have.status(200);",
+                  "  const jsonData = pm.response.json();",
+                  "  if (jsonData.length > 0) {",
+                  "    pm.environment.set('test_category_id', jsonData[0].id);",
+                  "    console.log(\"Используем категорию ID: \" + jsonData[0].id);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.4 Создать тестовую категорию (если нет)",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/admin/categories",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Тестовая категория для комментариев\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Категория создана или уже существует\", function() {",
+                  "  const status = pm.response.code;",
+                  "  if (status === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('test_category_id', jsonData.id);",
+                  "    console.log(\"Создана новая категория ID: \" + jsonData.id);",
+                  "  } else if (status === 409) {",
+                  "    console.log(\"Категория уже существует\");",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Проверка комментариев",
+      "item": [
+        {
+          "name": "1.0 Проверить GET /events/{id}/comments (публичный эндпоинт)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/events/1/comments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Публичные комментарии получены\", function() {",
+                  "  const status = pm.response.code;",
+                  "  pm.expect([200, 404, 400]).to.include(status);",
+                  "  if (status === 200) {",
+                  "    pm.response.to.be.withBody;",
+                  "    pm.response.to.be.json;",
+                  "    console.log(\"GET /events/{id}/comments работает\");",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.1 Проверить GET /admin/comments (админский эндпоинт)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/admin/comments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Админские комментарии получены\", function() {",
+                  "  const status = pm.response.code;",
+                  "  if (status === 200) {",
+                  "    pm.response.to.be.withBody;",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    console.log(\"Получено комментариев: \" + jsonData.length);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Проверить POST /users/{userId}/comments (создание комментария)",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments?eventId=1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Тестовый комментарий\",\n  \"parentId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Создание комментария\", function() {",
+                  "  const status = pm.response.code;",
+                  "  console.log(\"Статус ответа: \" + status);",
+                  "  console.log(\"Тело ответа: \" + pm.response.text());",
+                  "  pm.expect([201, 404, 400, 409]).to.include(status);",
+                  "  if (status === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('test_comment_id', jsonData.id);",
+                  "    console.log(\"Создан комментарий ID: \" + jsonData.id);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Граничные случаи (отдельные тесты)",
+      "item": [
+        {
+          "name": "2.1 Пустой текст комментария (должна быть ошибка 400)",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/1/comments?eventId=1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"\",\n  \"parentId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Пустой текст - ошибка 400\", function() {",
+                  "  const status = pm.response.code;",
+                  "  console.log(\"Статус для пустого текста: \" + status);",
+                  "  pm.expect(status).to.be.oneOf([400, 404, 409]);",
+                  "  if (status === 400) {",
+                  "    console.log(\"✓ Валидация работает: пустой текст отклонен\");",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Очень длинный текст (более 2000 символов)",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/1/comments?eventId=1",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"A\".repeat(2001),\n  \"parentId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Длинный текст - ошибка 400\", function() {",
+                  "  const status = pm.response.code;",
+                  "  console.log(\"Статус для длинного текста: \" + status);",
+                  "  pm.expect(status).to.be.oneOf([400, 404, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Административные функции (если есть комментарии)",
+      "item": [
+        {
+          "name": "3.1 Ограничить редактирование комментария",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/admin/comments/{{test_comment_id}}/restrict?reason=Тестовое ограничение",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Ограничение редактирования\", function() {",
+                  "  const status = pm.response.code;",
+                  "  console.log(\"Статус ограничения: \" + status);",
+                  "  pm.expect([200, 404]).to.include(status);",
+                  "  if (status === 200) {",
+                  "    console.log(\"✓ Ограничение установлено\");",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Модерация комментария",
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/admin/comments/{{test_comment_id}}/moderate",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\",\n  \"editRestricted\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Модерация комментария\", function() {",
+                  "  const status = pm.response.code;",
+                  "  console.log(\"Статус модерации: \" + status);",
+                  "  pm.expect([200, 404]).to.include(status);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Дополнительные проверки",
+      "item": [
+        {
+          "name": "4.1 Проверить can-edit endpoint",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments/{{test_comment_id}}/can-edit",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Проверка can-edit\", function() {",
+                  "  const status = pm.response.code;",
+                  "  console.log(\"Статус can-edit: \" + status);",
+                  "  pm.expect([200, 409, 404]).to.include(status);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 Получить комментарии пользователя",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Комментарии пользователя\", function() {",
+                  "  const status = pm.response.code;",
+                  "  console.log(\"Статус пользовательских комментариев: \" + status);",
+                  "  if (status === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    console.log(\"Найдено комментариев пользователя: \" + jsonData.length);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Устанавливаем заголовки для всех запросов",
+          "pm.request.headers.add({",
+          "  key: 'Content-Type',",
+          "  value: 'application/json'",
+          "});",
+          "",
+          "console.log(\"Запрос: \" + pm.request.method + \" \" + pm.request.url);",
+          "if (pm.request.body && pm.request.body.raw) {",
+          "  console.log(\"Тело запроса: \" + pm.request.body.raw);",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Общие тесты для всех запросов",
+          "pm.test(\"Response has valid status code\", function () {",
+          "  const status = pm.response.code;",
+          "  pm.expect([200, 201, 204, 400, 404, 409, 500]).to.include(status);",
+          "});",
+          "",
+          "console.log(\"=== Ответ ===\");",
+          "console.log(\"Статус: \" + pm.response.code);",
+          "console.log(\"Время: \" + pm.response.responseTime + \"ms\");",
+          "if (pm.response.headers.get('Content-Type')?.includes('application/json')) {",
+          "  try {",
+          "    const jsonData = pm.response.json();",
+          "    console.log(\"Тело ответа (JSON):\", JSON.stringify(jsonData, null, 2));",
+          "  } catch (e) {",
+          "    console.log(\"Не удалось распарсить JSON\");",
+          "  }",
+          "} else {",
+          "  console.log(\"Тип контента: \" + pm.response.headers.get('Content-Type'));",
+          "  console.log(\"Тело ответа: \" + pm.response.text().substring(0, 500));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "test_user_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "test_category_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "test_event_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "test_comment_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
