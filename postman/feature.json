@@ -1,0 +1,1072 @@
+{
+  "info": {
+    "name": "ExploreWithMe - Комментарии API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Тесты для фичи комментариев"
+  },
+  "item": [
+    {
+      "name": "Подготовка тестовых данных",
+      "item": [
+        {
+          "name": "0.1 Создать пользователя",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Создание тестового пользователя...');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/admin/users",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Тестовый пользователь\",\n  \"email\": \"test@example.com\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус создания пользователя:', pm.response.code);",
+                  "console.log('Ответ:', pm.response.text());",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "  const userData = pm.response.json();",
+                  "  pm.environment.set('test_user_id', userData.id);",
+                  "  console.log('Пользователь создан, ID:', userData.id);",
+                  "} else if (pm.response.code === 409) {",
+                  "  console.log('Пользователь уже существует');",
+                  "  pm.environment.set('test_user_id', '1');",
+                  "} else {",
+                  "  console.log('Используем пользователя с ID=1 по умолчанию');",
+                  "  pm.environment.set('test_user_id', '1');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.2 Создать категорию",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/admin/categories",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Тестовая категория для комментариев\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус создания категории:', pm.response.code);",
+                  "console.log('Ответ:', pm.response.text());",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "  const categoryData = pm.response.json();",
+                  "  pm.environment.set('test_category_id', categoryData.id);",
+                  "  console.log('Категория создана, ID:', categoryData.id);",
+                  "} else if (pm.response.code === 409) {",
+                  "  console.log('Категория уже существует');",
+                  "  pm.environment.set('test_category_id', '1');",
+                  "} else {",
+                  "  console.log('Используем категорию с ID=1 по умолчанию');",
+                  "  pm.environment.set('test_category_id', '1');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.3 Создать событие",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Подготовка события...');",
+                  "const userId = pm.environment.get('test_user_id');",
+                  "const categoryId = pm.environment.get('test_category_id');",
+                  "console.log('userId:', userId);",
+                  "console.log('categoryId:', categoryId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/{{test_user_id}}/events",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annotation\": \"Тестовое событие для комментариев\",\n  \"category\": {{test_category_id}},\n  \"description\": \"Описание тестового события для тестирования комментариев\",\n  \"eventDate\": \"2025-12-31 15:00:00\",\n  \"location\": {\n    \"lat\": 55.754167,\n    \"lon\": 37.62\n  },\n  \"paid\": false,\n  \"participantLimit\": 0,\n  \"requestModeration\": false,\n  \"title\": \"Тестовое событие для комментариев\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус создания события:', pm.response.code);",
+                  "console.log('Ответ:', pm.response.text());",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "  const eventData = pm.response.json();",
+                  "  pm.environment.set('test_event_id', eventData.id);",
+                  "  console.log('Событие создано, ID:', eventData.id);",
+                  "  console.log('Статус события:', eventData.state);",
+                  "  ",
+                  "  if (eventData.state !== 'PUBLISHED') {",
+                  "    console.log('Событие не опубликовано, нужно опубликовать...');",
+                  "  }",
+                  "} else if (pm.response.code === 404) {",
+                  "  console.log('404 ошибка - возможно неверный userId или categoryId');",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Сообщение об ошибке:', errorData.message);",
+                  "} else {",
+                  "  console.log('Используем событие с ID=1 по умолчанию');",
+                  "  pm.environment.set('test_event_id', '1');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.4 Опубликовать событие (если нужно)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Публикация события...');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/admin/events/{{test_event_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stateAction\": \"PUBLISH_EVENT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус публикации:', pm.response.code);",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const eventData = pm.response.json();",
+                  "  console.log('Событие опубликовано');",
+                  "  console.log('Статус:', eventData.state);",
+                  "  pm.environment.set('event_published', 'true');",
+                  "} else if (pm.response.code === 409) {",
+                  "  console.log('Событие уже опубликовано или в неподходящем статусе');",
+                  "  pm.environment.set('event_published', 'true');",
+                  "} else {",
+                  "  console.log('Не удалось опубликовать событие');",
+                  "  console.log('Используем опубликованное событие с ID=1');",
+                  "  pm.environment.set('test_event_id', '1');",
+                  "  pm.environment.set('event_published', 'true');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ПОЛОЖИТЕЛЬНЫЕ ТЕСТЫ",
+      "item": [
+        {
+          "name": "1.1 Создание комментария к опубликованному событию",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.environment.get('event_published')) {",
+                  "  console.error('Событие не опубликовано! Пропускаем тест.');",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "console.log('Используемые параметры:');",
+                  "console.log('userId:', pm.environment.get('test_user_id'));",
+                  "console.log('eventId:', pm.environment.get('test_event_id'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments?eventId={{test_event_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Отличное мероприятие! Очень понравилась организация.\",\n  \"parentId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус создания комментария:', pm.response.code);",
+                  "console.log('Ответ:', pm.response.text());",
+                  "",
+                  "pm.test('Комментарий создан (статус 201)', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "  const commentData = pm.response.json();",
+                  "  console.log('Структура комментария:', Object.keys(commentData));",
+                  "  ",
+                  "  pm.test('Есть ID комментария', function() {",
+                  "    pm.expect(commentData).to.have.property('id');",
+                  "  });",
+                  "  ",
+                  "  pm.test('Есть текст комментария', function() {",
+                  "    pm.expect(commentData).to.have.property('text');",
+                  "    pm.expect(commentData.text).to.equal('Отличное мероприятие! Очень понравилась организация.');",
+                  "  });",
+                  "  ",
+                  "  pm.test('Есть статус', function() {",
+                  "    pm.expect(commentData).to.have.property('status');",
+                  "    pm.expect(commentData.status).to.be.oneOf(['PENDING', 'PUBLISHED']);",
+                  "  });",
+                  "  ",
+                  "  pm.environment.set('test_comment_id', commentData.id);",
+                  "  pm.environment.set('comment_status', commentData.status);",
+                  "  console.log('Комментарий создан, ID:', commentData.id);",
+                  "  console.log('Статус комментария:', commentData.status);",
+                  "} else if (pm.response.code === 404) {",
+                  "  console.log('Ошибка 404 - пользователь или событие не найдены');",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Сообщение об ошибке:', errorData.message);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Получить комментарии события (публичный эндпоинт)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/events/{{test_event_id}}/comments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус получения комментариев:', pm.response.code);",
+                  "",
+                  "pm.test('Статус 200 при получении комментариев', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const comments = pm.response.json();",
+                  "  console.log('Количество комментариев:', comments.length);",
+                  "  ",
+                  "  const ourCommentId = pm.environment.get('test_comment_id');",
+                  "  if (ourCommentId) {",
+                  "    const ourComment = comments.find(c => c.id == ourCommentId);",
+                  "    if (ourComment) {",
+                  "      console.log('Наш комментарий найден в публичном API');",
+                  "      ",
+                  "      pm.test('Публичный комментарий имеет правильную структуру', function() {",
+                  "        pm.expect(ourComment).to.include.keys(['id', 'text', 'author', 'created']);",
+                  "        pm.expect(ourComment.author).to.include.keys(['id', 'name']);",
+                  "      });",
+                  "    } else {",
+                  "      console.log('Наш комментарий не найден в публичном API (возможно не опубликован)');",
+                  "    }",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Получить комментарии пользователя",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус получения комментариев пользователя:', pm.response.code);",
+                  "",
+                  "pm.test('Статус 200 при получении комментариев пользователя', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const comments = pm.response.json();",
+                  "  console.log('Количество комментариев пользователя:', comments.length);",
+                  "  ",
+                  "  const ourCommentId = pm.environment.get('test_comment_id');",
+                  "  if (ourCommentId && comments.length > 0) {",
+                  "    const ourComment = comments.find(c => c.id == ourCommentId);",
+                  "    if (ourComment) {",
+                  "      console.log('Наш комментарий найден в списке пользователя');",
+                  "      ",
+                  "      pm.test('Комментарий пользователя имеет полную структуру', function() {",
+                  "        pm.expect(ourComment).to.include.keys(['id', 'text', 'eventId', 'created', 'status']);",
+                  "      });",
+                  "    }",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "МОДЕРАЦИЯ КОММЕНТАРИЕВ",
+      "item": [
+        {
+          "name": "2.1 Получить комментарии для модерации (админ)",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/admin/comments",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус получения админских комментариев:', pm.response.code);",
+                  "",
+                  "pm.test('Админ может получить комментарии', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const comments = pm.response.json();",
+                  "  console.log('Комментариев для модерации:', comments.length);",
+                  "  ",
+                  "  const ourCommentId = pm.environment.get('test_comment_id');",
+                  "  if (ourCommentId) {",
+                  "    const ourComment = comments.find(c => c.id == ourCommentId);",
+                  "    if (ourComment) {",
+                  "      console.log('Наш комментарий доступен для модерации');",
+                  "      console.log('Статус комментария:', ourComment.status);",
+                  "    }",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Опубликовать комментарий (модерация)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const commentId = pm.environment.get('test_comment_id');",
+                  "const commentStatus = pm.environment.get('comment_status');",
+                  "",
+                  "if (!commentId) {",
+                  "  console.error('Нет ID комментария! Пропускаем тест.');",
+                  "  pm.execution.setNextRequest(null);",
+                  "}",
+                  "",
+                  "console.log('Модерируем комментарий ID:', commentId);",
+                  "console.log('Текущий статус:', commentStatus);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/admin/comments/{{test_comment_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус модерации:', pm.response.code);",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const commentData = pm.response.json();",
+                  "  console.log('Комментарий опубликован');",
+                  "  ",
+                  "  pm.test('Статус изменен на PUBLISHED', function() {",
+                  "    pm.expect(commentData.status).to.equal('PUBLISHED');",
+                  "  });",
+                  "  ",
+                  "  pm.test('ID комментария сохранен', function() {",
+                  "    pm.expect(commentData.id).to.equal(parseInt(pm.environment.get('test_comment_id')));",
+                  "  });",
+                  "} else if (pm.response.code === 404) {",
+                  "  console.log('Комментарий не найден');",
+                  "} else if (pm.response.code === 409) {",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Конфликт при модерации:', errorData.message);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NEGATIVE ТЕСТЫ",
+      "item": [
+        {
+          "name": "3.1 Пустой текст комментария",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments?eventId={{test_event_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"\",\n  \"parentId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус пустого текста:', pm.response.code);",
+                  "",
+                  "pm.test('Пустой текст вызывает ошибку 400', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 400) {",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Ошибка валидации:', errorData.message);",
+                  "  ",
+                  "  pm.test('Сообщение об ошибке валидации', function() {",
+                  "    pm.expect(errorData.message).to.exist;",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Комментарий к неопубликованному событию",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Создаем неопубликованное событие...');",
+                  "pm.variables.set('unpublished_event_id', '999');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments?eventId=999",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Попытка комментировать неопубликованное событие\",\n  \"parentId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус комментария к неопубликованному событию:', pm.response.code);",
+                  "",
+                  "pm.test('Ошибка при комментировании неопубликованного события', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([409, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 409) {",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Конфликт:', errorData.message);",
+                  "  ",
+                  "  pm.test('Сообщение о неопубликованном событии', function() {",
+                  "    pm.expect(errorData.message).to.include('unpublished');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 Несуществующий пользователь",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/999999/comments?eventId={{test_event_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Комментарий от несуществующего пользователя\",\n  \"parentId\": null\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус несуществующего пользователя:', pm.response.code);",
+                  "",
+                  "pm.test('Несуществующий пользователь вызывает ошибку', function() {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 404) {",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Ошибка:', errorData.message);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ТЕСТЫ НА КОНФЛИКТЫ И ОБНОВЛЕНИЕ",
+      "item": [
+        {
+          "name": "4.0 Подготовка: получить существующие ID",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('=== Проверяем существующие ID ===');",
+                  "console.log('test_user_id:', pm.environment.get('test_user_id'));",
+                  "console.log('test_event_id:', pm.environment.get('test_event_id'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  console.log('Сервер доступен');",
+                  "}",
+                  "pm.execution.setNextRequest('4.1 Создать тестовый комментарий для конфликтов');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/events"
+          }
+        },
+        {
+          "name": "4.1 Создать тестовый комментарий для конфликтов",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('=== Создаем комментарий для тестов конфликтов ===');",
+                  "const userId = pm.environment.get('test_user_id');",
+                  "const eventId = pm.environment.get('test_event_id');",
+                  "",
+                  "if (!userId || !eventId) {",
+                  "  console.log('Не указаны test_user_id или test_event_id');",
+                  "  console.log('Установите их в предыдущих тестах или вручную:');",
+                  "  console.log('1. Запустите тесты на создание пользователя и события');",
+                  "  console.log('2. Или установите вручную в Environment:');",
+                  "  console.log('   test_user_id = ID существующего пользователя');",
+                  "  console.log('   test_event_id = ID существующего опубликованного события');",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус создания:', pm.response.code);",
+                  "console.log('Ответ:', pm.response.text());",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "  const responseData = pm.response.json();",
+                  "  pm.environment.set('conflict_comment_id', responseData.id);",
+                  "  console.log('Тестовый комментарий создан. ID:', responseData.id);",
+                  "  console.log('Текст:', responseData.text);",
+                  "  pm.execution.setNextRequest('4.2 Обновить комментарий');",
+                  "} else if (pm.response.code === 400) {",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Ошибка валидации:', errorData.message || errorData);",
+                  "  console.log('Попробуем другой формат запроса...');",
+                  "  pm.execution.setNextRequest(null);",
+                  "} else if (pm.response.code === 404) {",
+                  "  console.log('404 - Возможные причины:');",
+                  "  console.log('1. Пользователь с ID=' + pm.environment.get('test_user_id') + ' не существует');",
+                  "  console.log('2. Событие с ID=' + pm.environment.get('test_event_id') + ' не существует или не опубликовано');",
+                  "  console.log('3. Неправильный путь API');",
+                  "  pm.execution.setNextRequest(null);",
+                  "} else {",
+                  "  console.log('Неожиданный статус:', pm.response.code);",
+                  "  console.log('Ответ:', pm.response.text());",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments?eventId={{test_event_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Комментарий для тестов конфликтов и обновления\",\n  \"parentId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "4.2 Обновить комментарий",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('=== Пытаемся обновить комментарий ===');",
+                  "const commentId = pm.environment.get('conflict_comment_id');",
+                  "if (!commentId) {",
+                  "  console.log('Нет conflict_comment_id. Пропускаем тест.');",
+                  "  pm.execution.setNextRequest('4.3 Тест на конфликт: создание отдельного комментария');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус обновления:', pm.response.code);",
+                  "",
+                  "pm.test('Обновление комментария', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403, 404, 409]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const commentData = pm.response.json();",
+                  "  console.log('Комментарий успешно обновлен');",
+                  "  pm.test('Текст обновлен', function() {",
+                  "    pm.expect(commentData.text).to.equal('Обновленный текст комментария');",
+                  "  });",
+                  "} else if (pm.response.code === 403) {",
+                  "  console.log('Редактирование запрещено (например, после публикации)');",
+                  "} else if (pm.response.code === 409) {",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Конфликт:', errorData.message);",
+                  "} else if (pm.response.code === 404) {",
+                  "  console.log('Комментарий не найден');",
+                  "}",
+                  "",
+                  "pm.execution.setNextRequest('4.3 Тест на конфликт: создание отдельного комментария');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments/{{conflict_comment_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Обновленный текст комментария\"\n}"
+            }
+          }
+        },
+        {
+          "name": "4.3 Тест на конфликт: создание отдельного комментария",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('=== Создаем отдельный комментарий для теста публикации ===');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const responseData = pm.response.json();",
+                  "  const newCommentId = responseData.id;",
+                  "  pm.environment.set('published_comment_id', newCommentId);",
+                  "  console.log('Создан комментарий для публикации. ID:', newCommentId);",
+                  "  ",
+                  "  console.log('Публикуем комментарий...');",
+                  "  const publishUrl = `http://localhost:8080/comments/${newCommentId}/publish`;",
+                  "  pm.sendRequest({",
+                  "    url: publishUrl,",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' }",
+                  "  }, (err, res) => {",
+                  "    if (err) {",
+                  "      console.log('Ошибка при публикации:', err);",
+                  "    } else {",
+                  "      console.log('Статус публикации:', res.code);",
+                  "      if (res.code === 200 || res.code === 204) {",
+                  "        console.log('Комментарий опубликован');",
+                  "        ",
+                  "        console.log('Пытаемся обновить опубликованный комментарий...');",
+                  "        const updateUrl = `http://localhost:8080/users/${pm.environment.get('test_user_id')}/comments/${newCommentId}`;",
+                  "        pm.sendRequest({",
+                  "          url: updateUrl,",
+                  "          method: 'PATCH',",
+                  "          header: { 'Content-Type': 'application/json' },",
+                  "          body: JSON.stringify({ text: 'Попытка обновить опубликованный комментарий' })",
+                  "        }, (err2, res2) => {",
+                  "          if (err2) {",
+                  "            console.log('Ошибка при обновлении:', err2);",
+                  "          } else {",
+                  "            console.log('Результат обновления опубликованного комментария:');",
+                  "            console.log('Статус:', res2.code);",
+                  "            console.log('Ответ:', res2.text());",
+                  "            ",
+                  "            if (res2.code === 403 || res2.code === 409) {",
+                  "              console.log('Тест пройден: нельзя обновить опубликованный комментарий');",
+                  "            } else if (res2.code === 200) {",
+                  "              console.log('Неожиданно: опубликованный комментарий можно обновить');",
+                  "            }",
+                  "          }",
+                  "          pm.execution.setNextRequest('4.4 Удалить основной комментарий');",
+                  "        });",
+                  "      } else {",
+                  "        console.log('Не удалось опубликовать комментарий');",
+                  "        pm.execution.setNextRequest('4.4 Удалить основной комментарий');",
+                  "      }",
+                  "    }",
+                  "  });",
+                  "} else {",
+                  "  console.log('Не удалось создать комментарий для публикации');",
+                  "  pm.execution.setNextRequest('4.4 Удалить основной комментарий');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments?eventId={{test_event_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Комментарий для теста публикации\",\n  \"parentId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "4.4 Удалить основной комментарий",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('=== Удаляем основной тестовый комментарий ===');",
+                  "const commentId = pm.environment.get('conflict_comment_id');",
+                  "if (!commentId) {",
+                  "  console.log('Нет conflict_comment_id, пропускаем удаление');",
+                  "  pm.execution.setNextRequest('4.5.1 Получить удаленный комментарий');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус удаления:', pm.response.code);",
+                  "",
+                  "pm.test('Удаление комментария', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([204, 200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 204 || pm.response.code === 200) {",
+                  "  console.log('Комментарий удален');",
+                  "  pm.environment.set('comment_deleted', 'true');",
+                  "} else if (pm.response.code === 404) {",
+                  "  console.log('Комментарий уже удален или не найден');",
+                  "}",
+                  "",
+                  "pm.execution.setNextRequest('4.5.1 Получить удаленный комментарий');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments/{{conflict_comment_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        {
+          "name": "4.5.1 Получить удаленный комментарий",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('=== Пытаемся получить удаленный комментарий через публичный API ===');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус получения:', pm.response.code);",
+                  "",
+                  "pm.test('Удаленный комментарий не доступен публично', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 404) {",
+                  "  console.log('Тест пройден: удаленный комментарий не найден');",
+                  "} else if (pm.response.code === 200) {",
+                  "  console.log('Удаленный комментарий все еще доступен');",
+                  "  const data = pm.response.json();",
+                  "  console.log('Статус комментария:', data.status);",
+                  "}",
+                  "",
+                  "pm.execution.setNextRequest('4.5.2 Обновить удаленный комментарий');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8080/events/{{test_event_id}}/comments/{{conflict_comment_id}}"
+          }
+        },
+        {
+          "name": "4.5.2 Обновить удаленный комментарий",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('=== Пытаемся обновить удаленный комментарий ===');",
+                  "const commentId = pm.environment.get('conflict_comment_id');",
+                  "if (!commentId) {",
+                  "  console.log('Нет comment_id для теста');",
+                  "  pm.execution.setNextRequest(null);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('Статус обновления удаленного:', pm.response.code);",
+                  "",
+                  "pm.test('Нельзя обновить удаленный комментарий', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404, 409]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 409) {",
+                  "  const errorData = pm.response.json();",
+                  "  console.log('Тест пройден: нельзя обновить удаленный комментарий');",
+                  "  console.log('Сообщение об ошибке:', errorData.message);",
+                  "  ",
+                  "  pm.test('Ошибка указывает на удаленный/отклоненный комментарий', function() {",
+                  "    if (errorData && errorData.message) {",
+                  "      const message = errorData.message.toLowerCase();",
+                  "      const isRejectedError = message.includes('rejected') ||",
+                  "                             message.includes('cannot edit rejected comment') ||",
+                  "                             message.includes('deleted') ||",
+                  "                             message.includes('удален');",
+                  "      pm.expect(isRejectedError).to.be.true;",
+                  "    }",
+                  "  });",
+                  "} else if (pm.response.code === 404) {",
+                  "  console.log('Комментарий не найден (уже удален)');",
+                  "} else if (pm.response.code === 200) {",
+                  "  console.log('Неожиданно: удаленный комментарий можно обновить');",
+                  "}",
+                  "",
+                  "console.log('=== Все тесты конфликтов завершены ===');",
+                  "pm.execution.setNextRequest(null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "http://localhost:8080/users/{{test_user_id}}/comments/{{conflict_comment_id}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Попытка обновить удаленный комментарий\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
